@@ -13,7 +13,7 @@ GENCODE_SM50 := -gencode=arch=compute_50,code=\"sm_50,compute_50\"
 GENCODE_SM60 := -gencode=arch=compute_60,code=\"sm_60,compute_60\"
 GENCODE_SM62 := -gencode=arch=compute_62,code=\"sm_62,compute_62\"
 
-CUOPTS =  $(GENCODE_ARCH) $(GENCODE_SM20) $(GENCODE_SM30) $(GENCODE_SM35) $(GENCODE_SM50) $(GENCODE_SM60) $(GENCODE_SM62)
+CUOPTS =  $(GENCODE_ARCH) $(GENCODE_SM30) $(GENCODE_SM35) $(GENCODE_SM50) $(GENCODE_SM60) $(GENCODE_SM62)
 
 # Precision option
 PREC_FLAG = -DDOUBLE
@@ -32,7 +32,7 @@ FLAGS = -g -O2 $(PREC_FLAG) $(CHEBY_FLAG) $(GZIP_FLAG)
 # TODO: check if ECX_TARGET is set
 # use this only with CUDA 5
 #NVCC_FLAGS += -gencode arch=compute_35,code=compute_35
-NVCC_FLAGS += -g -gencode arch=compute_20,code=compute_20 --ptxas-options=-v -lineinfo
+NVCC_FLAGS += -g $(CUOPTS) --ptxas-options=-v -lineinfo
 #NVCC_FLAGS += -gencode arch=compute_20,code=compute_20 -lineinfo
 #NVCC_FLAGS += -arch=sm_20 -lineinfo
 
