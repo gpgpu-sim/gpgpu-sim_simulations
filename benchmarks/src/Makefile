@@ -1,50 +1,24 @@
 
-CUDA_VERSION=$(shell nvcc --version | grep release | sed -re 's/.*release ([0-9]+\.[0-9]+).*/\1/')
-CUDA_VERSION_MAJOR=$(shell nvcc --version | grep release | sed -re 's/.*release ([0-9]+)\..*/\1/')
-BINDIR=$(shell pwd)/../bin/$(CUDA_VERSION)
-BINSUBDIR=release
-SETENV=export BINDIR=$(BINDIR); \
-   	export BINSUBDIR=$(BINSUBDIR); \
-   	export ROOTOBJDIR=obj_$(CUDA_VERSION);\
-
-ifeq ($(shell test $(CUDA_VERSION_MAJOR) -gt 4; echo $$?),0)
-	MAKE_ARGS := GENCODE_SM10=
-else
-	MAKE_ARGS := 
+ifeq ($(GPGPUSIM_BENCHMARKS_SETUP_ENVIRONMENT_WAS_RUN), 0)
+$(error You must run "source setup_environment before calling make")
 endif
 
-check_environment:
+all:   pannotia rodinia_2.0-ft proxy-apps dragon-naive 
+#  dragon-cdp 
+
+#Disable clean for now, It has a bug!
+#clean: clean_rodinia_2.0-ft 
+#	../data_dirs/clean_data.sh
+
+#clean_dragon-naive clean_dragon-cdp clean_pannotia clean_proxy-apps
+
+data:
 	bash ../data_dirs/get_data.sh
-	 @if [ ! -n "$(CUDA_INSTALL_PATH)" ]; then \
-		echo "ERROR *** CUDA_INSTALL_PATH not set; please see README.ISPASS-2009"; \
-		exit 201; \
-	 elif [ ! -d "$(CUDA_INSTALL_PATH)" ]; then \
-	 	echo "ERROR *** CUDA_INSTALL_PATH=$(CUDA_INSTALL_PATH) invalid (directory does not exist)."; \
-		exit 202; \
-	 else \
-		NVCC_PATH=`which nvcc`; \
-		if [ $$? = 1 ]; then \
-			echo ""; \
-			echo "ERROR ** nvcc (from CUDA Toolkit) was not found in PATH but required to build the ISPASS 2009 benchmarks."; \
-			echo "         Try adding $(CUDA_INSTALL_PATH)/bin/ to your PATH environment variable."; \
-			echo "         Please also be sure to read README.ISPASS-2009 if you have not done so."; \
-			echo ""; \
-			exit 206; \
-		else\
-			CUDA_VERSION=`nvcc --version | grep release | sed -re 's/.*release ([0-9]+\.[0-9]+).*/\1/'`; \
-			if [ "$(CUDA_VERSION)"=="2.3" -o "$(CUDA_VERSION)"=="3.1" -o "$(CUDA_VERSION)"=="4.0" -o "$(CUDA_VERSION)"=="4.2" ]; then \
-				true;\
-			else \
-				echo "Only CUDA 2.3, 3.1, 4.0 and 4.2 are supported. Your cuda Version is $(CUDA_VERSION)"; \
-				exit 207;\
-			fi\
-		fi \
-	fi
 
 ###################################################################################################3
 # Rodinia 2.0 Functional Test Stuff
 ###################################################################################################3
-rodinia_2.0-ft: check_environment
+rodinia_2.0-ft: data
 	$(SETENV) make $(MAKE_ARGS) -C cuda/rodinia/2.0-ft/backprop
 	$(SETENV) make $(MAKE_ARGS) -C cuda/rodinia/2.0-ft/bfs
 	$(SETENV) make $(MAKE_ARGS) -C cuda/rodinia/2.0-ft/heartwall
@@ -56,6 +30,51 @@ rodinia_2.0-ft: check_environment
 	$(SETENV) make $(MAKE_ARGS) -C cuda/rodinia/2.0-ft/pathfinder
 	$(SETENV) make $(MAKE_ARGS) -C cuda/rodinia/2.0-ft/srad
 	$(SETENV) make $(MAKE_ARGS) -C cuda/rodinia/2.0-ft/streamcluster
+
+###################################################################################################3
+# For Dragon, we need to change the archs manually!  (TO DO)
+# Naive works wwith only SM_20 and above
+# Fro Dragon-cdp comilation, you need to ensure that you are using at least CUDA 5.5
+###################################################################################################3
+dragon-naive: data
+	chmod +x cuda/dragon_li/sconstruct
+	scons sm20=1 -C cuda/dragon_li
+
+dragon-cdp: data
+	chmod +x cuda/dragon_li/sconstruct
+	scons cdp=1 -C cuda/dragon_li
+
+###################################################################################################3
+#pagerank and bc does not work with SM_10 because they need atomic_add
+###################################################################################################3
+
+pannotia: data
+	$(SETENV) make $(MAKE_ARGS) -C cuda/pannotia/bc
+	$(SETENV) export VARIANT="MAX"; make $(MAKE_ARGS) -C cuda/pannotia/color
+	$(SETENV) export VARIANT="MAXMIN"; make $(MAKE_ARGS) -C cuda/pannotia/color
+	$(SETENV) export VARIANT="DEFAULT"; make $(MAKE_ARGS) -C cuda/pannotia/fw
+	$(SETENV) export VARIANT="BLOCK"; make $(MAKE_ARGS) -C cuda/pannotia/fw
+	$(SETENV) make $(MAKE_ARGS) -C cuda/pannotia/mis
+	$(SETENV) export VARIANT="DEFAULT"; make $(MAKE_ARGS) -C cuda/pannotia/pagerank
+	$(SETENV) export VARIANT="SPMV"; make $(MAKE_ARGS) -C cuda/pannotia/pagerank
+	$(SETENV) export VARIANT="CSR"; make $(MAKE_ARGS) -C cuda/pannotia/sssp
+	$(SETENV) export VARIANT="ELL"; make $(MAKE_ARGS) -C cuda/pannotia/sssp
+
+###################################################################################################3
+#TO DO
+#note: matvec does not work with cuda 8.0
+#comd does not wark with cuda 4.2
+#xsbench does not work with SM_10
+###################################################################################################3
+
+proxy-apps: data
+	chmod +x cuda/proxy-apps-doe/cns/compile.bash
+	($(SETENV) cd cuda/proxy-apps-doe/cns/ ; ./compile.bash)
+	#chmod +x cuda/proxy-apps-doe/comd/cmd_compile.sh
+	#( cd cuda/proxy-apps-doe/comd ; ./cmd_compile.sh) 
+	$(SETENV) make $(MAKE_ARGS) -C cuda/proxy-apps-doe/lulesh
+	$(SETENV) make $(MAKE_ARGS) -C cuda/proxy-apps-doe/minife_matvec_ell
+	$(SETENV) make $(MAKE_ARGS) -C cuda/proxy-apps-doe/xsbench
 
 clean_rodinia_2.0-ft:
 	$(SETENV) make $(MAKE_ARGS) clean -C cuda/rodinia/2.0-ft/backprop
@@ -70,6 +89,29 @@ clean_rodinia_2.0-ft:
 	$(SETENV) make $(MAKE_ARGS) clean -C cuda/rodinia/2.0-ft/srad
 	$(SETENV) make $(MAKE_ARGS) clean -C cuda/rodinia/2.0-ft/streamcluster
 
-all: check_environment rodinia_2.0-ft
-cleanall: clean_rodinia_2.0-ft
-	../data_dirs/clean_data.sh
+clean_dragon-naive: 
+	$(SETENV) rm -f /cuda/dragon_li/bin
+
+clean_dragon-cdp: 
+	$(SETENV) rm -f /cuda/dragon_li/cdp_bin
+
+clean_pannotia: 
+	$(SETENV) make $(MAKE_ARGS) clean -C cuda/pannotia/bc
+	$(SETENV) export VARIANT="MAX"; make $(MAKE_ARGS) clean -C cuda/pannotia/color
+	$(SETENV) export VARIANT="MAXMIN"; make $(MAKE_ARGS) clean -C cuda/pannotia/color
+	$(SETENV) export VARIANT="DEFAULT"; make $(MAKE_ARGS) clean -C cuda/pannotia/fw
+	$(SETENV) export VARIANT="BLOCK"; make $(MAKE_ARGS) clean -C cuda/pannotia/fw
+	$(SETENV) make $(MAKE_ARGS)  -C cuda/pannotia/mis
+	$(SETENV) export VARIANT="DEFAULT"; make $(MAKE_ARGS) clean -C cuda/pannotia/pagerank
+	$(SETENV) export VARIANT="SPMV"; make $(MAKE_ARGS) clean -C cuda/pannotia/pagerank
+	$(SETENV) export VARIANT="DEFAULT"; make $(MAKE_ARGS) clean -C cuda/pannotia/sssp
+	$(SETENV) export VARIANT="ELL"; make $(MAKE_ARGS) clean -C cuda/pannotia/sssp
+
+clean_proxy-apps:
+	$(SETENV) make $(MAKE_ARGS) clean -C cuda/proxy-apps-doe/lulesh
+	$(SETENV) make $(MAKE_ARGS) clean -C cuda/proxy-apps-doe/minife_matvec_ell
+	$(SETENV) make $(MAKE_ARGS) clean -C cuda/proxy-apps-doe/xsbench
+	chmod +x cuda/proxy-apps-doe/cns/compile.bash
+	(cd cuda/proxy-apps-doe/cns/ ; ./compile.bash -c)
+	chmod +x cuda/proxy-apps-doe/comd/clean.sh
+	( cd cuda/proxy-apps-doe/comd ; ./clean.sh ) 

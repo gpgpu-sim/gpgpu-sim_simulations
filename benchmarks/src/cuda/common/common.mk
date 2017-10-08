@@ -21,7 +21,7 @@
 .SUFFIXES : .cu .cu_dbg.o .c_dbg.o .cpp_dbg.o .cu_rel.o .c_rel.o .cpp_rel.o .cubin .ptx
 
 # Add new SM Versions here as devices with new Compute Capability are released
-SM_VERSIONS   := 10 11 12 13 20 21 30
+SM_VERSIONS   := 10 11 12 13 20 21 30 50 60 62
 
 CUDA_INSTALL_PATH ?= /home/tgrogers-raid/a/common/cuda-4.2
 
@@ -52,8 +52,9 @@ ROOTBINDIR ?= $(ROOTDIR)/../bin
 BINDIR     ?= $(ROOTBINDIR)/$(OSLOWER)
 ROOTOBJDIR ?= obj
 LIBDIR     := $(ROOTDIR)/../lib
-COMMONDIR  := $(ROOTDIR)/../common
-SHAREDDIR  := $(ROOTDIR)/../../shared/
+LIBDIRSDK     := $(NVIDIA_COMPUTE_SDK_LOCATION)/../4.2/C/lib
+COMMONDIR  := $(NVIDIA_COMPUTE_SDK_LOCATION)/../4.2/C/common
+SHAREDDIR  := $(NVIDIA_COMPUTE_SDK_LOCATION)/../4.2/shared
 
 # Compilers
 NVCC       := $(CUDA_INSTALL_PATH)/bin/nvcc 
@@ -136,8 +137,13 @@ endif
 
 # Compiler-specific flags (by default, we always use sm_10, sm_20, and sm_30), unless we use the SMVERSION template
 GENCODE_SM10 := -gencode=arch=compute_10,code=\"sm_10,compute_10\"
+GENCODE_SM13 := -gencode=arch=compute_13,code=\"sm_13,compute_13\"
 GENCODE_SM20 := -gencode=arch=compute_20,code=\"sm_20,compute_20\"
 GENCODE_SM30 := -gencode=arch=compute_30,code=\"sm_30,compute_30\"
+GENCODE_SM35 := -gencode=arch=compute_35,code=\"sm_35,compute_35\"
+GENCODE_SM50 := -gencode=arch=compute_50,code=\"sm_50,compute_50\"
+GENCODE_SM60 := -gencode=arch=compute_60,code=\"sm_60,compute_60\"
+GENCODE_SM62 := -gencode=arch=compute_62,code=\"sm_62,compute_62\"
 
 CXXFLAGS  += $(CXXWARN_FLAGS) $(CXX_ARCH_FLAGS)
 CFLAGS    += $(CWARN_FLAGS) $(CXX_ARCH_FLAGS)
@@ -249,19 +255,19 @@ endif
 
 # Libs
 ifneq ($(DARWIN),)
-    LIB       := -L$(CUDA_INSTALL_PATH)/lib -L$(LIBDIR) -L$(COMMONDIR)/lib/$(OSLOWER) -L$(SHAREDDIR)/lib $(NVCUVIDLIB) 
+    LIB       := -L$(CUDA_INSTALL_PATH)/lib -L$(LIBDIR) -L$(LIBDIRSDK) -L$(COMMONDIR)/lib/$(OSLOWER) -L$(SHAREDDIR)/lib $(NVCUVIDLIB) 
 else
   ifeq "$(strip $(HP_64))" ""
     ifeq ($(x86_64),1)
-       LIB       := -L$(CUDA_INSTALL_PATH)/lib64 -L$(LIBDIR) -L$(COMMONDIR)/lib/$(OSLOWER) -L$(SHAREDDIR)/lib 
+       LIB       := -L$(CUDA_INSTALL_PATH)/lib64 -L$(LIBDIR) -L$(LIBDIRSDK) -L$(COMMONDIR)/lib/$(OSLOWER) -L$(SHAREDDIR)/lib 
     else
-       LIB       := -L$(CUDA_INSTALL_PATH)/lib -L$(LIBDIR) -L$(COMMONDIR)/lib/$(OSLOWER) -L$(SHAREDDIR)/lib
+       LIB       := -L$(CUDA_INSTALL_PATH)/lib -L$(LIBDIR) -L$(LIBDIRSDK) -L$(COMMONDIR)/lib/$(OSLOWER) -L$(SHAREDDIR)/lib
     endif
   else
     ifeq ($(i386),1)
-       LIB       := -L$(CUDA_INSTALL_PATH)/lib -L$(LIBDIR) -L$(COMMONDIR)/lib/$(OSLOWER) -L$(SHAREDDIR)/lib
+       LIB       := -L$(CUDA_INSTALL_PATH)/lib -L$(LIBDIR) -L$(LIBDIRSDK) -L$(COMMONDIR)/lib/$(OSLOWER) -L$(SHAREDDIR)/lib
     else
-       LIB       := -L$(CUDA_INSTALL_PATH)/lib64 -L$(LIBDIR) -L$(COMMONDIR)/lib/$(OSLOWER) -L$(SHAREDDIR)/lib
+       LIB       := -L$(CUDA_INSTALL_PATH)/lib64 -L$(LIBDIR) -L$(LIBDIRSDK) -L$(COMMONDIR)/lib/$(OSLOWER) -L$(SHAREDDIR)/lib
     endif
   endif
 endif
@@ -407,11 +413,11 @@ $(OBJDIR)/%.cpp.o : $(SRCDIR)%.cpp $(C_DEPS)
 
 # Default arch includes gencode for sm_10, sm_20, sm_30, and other archs from GENCODE_ARCH declared in the makefile
 $(OBJDIR)/%.cu.o : $(SRCDIR)%.cu $(CU_DEPS)
-	$(VERBOSE)$(NVCC) $(GENCODE_SM10) $(GENCODE_ARCH) $(GENCODE_SM20) $(GENCODE_SM30) $(NVCCFLAGS) $(SMVERSIONFLAGS) -o $@ -c $<
+	$(VERBOSE)$(NVCC) $(GENCODE_SM10) $(GENCODE_SM13) $(GENCODE_ARCH) $(GENCODE_SM20) $(GENCODE_SM30) $(GENCODE_SM35) $(GENCODE_SM50) $(GENCODE_SM60) $(GENCODE_SM62) $(NVCCFLAGS) $(SMVERSIONFLAGS) -o $@ -c $<
 
 # Default arch includes gencode for sm_10, sm_20, sm_30, and other archs from GENCODE_ARCH declared in the makefile
 $(CUBINDIR)/%.cubin : $(SRCDIR)%.cu cubindirectory
-	$(VERBOSE)$(NVCC) $(GENCODE_SM10) $(GENCODE_ARCH) $(GENCODE_SM20) $(GENCODE_SM30) $(CUBIN_ARCH_FLAG) $(NVCCFLAGS) $(SMVERSIONFLAGS) -o $@ -cubin $<
+	$(VERBOSE)$(NVCC) $(GENCODE_SM10) $(GENCODE_SM13) $(GENCODE_ARCH) $(GENCODE_SM20) $(GENCODE_SM30) $(GENCODE_SM35) $(GENCODE_SM50) $(GENCODE_SM60) $(GENCODE_SM62) $(CUBIN_ARCH_FLAG) $(NVCCFLAGS) $(SMVERSIONFLAGS) -o $@ -cubin $<
 
 $(PTXDIR)/%.ptx : $(SRCDIR)%.cu ptxdirectory
 	$(VERBOSE)$(NVCC) $(CUBIN_ARCH_FLAG) $(NVCCFLAGS) $(SMVERSIONFLAGS) -o $@ -ptx $<
