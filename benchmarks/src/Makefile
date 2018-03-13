@@ -3,14 +3,17 @@ ifeq ($(GPGPUSIM_BENCHMARKS_SETUP_ENVIRONMENT_WAS_RUN), 0)
 $(error You must run "source setup_environment before calling make")
 endif
 
+
+ifeq ($(CUDA_GT_4), 1)
+all:   pannotia rodinia_2.0-ft proxy-apps dragon-naive microbench rodinia-3.1 sdk-4.2 ispass-2009 dragon-cdp lonestargpu-2.0
+else
 all:   pannotia rodinia_2.0-ft proxy-apps dragon-naive microbench rodinia-3.1 sdk-4.2 ispass-2009
-#  dragon-cdp 
+endif
 
 #Disable clean for now, It has a bug!
-#clean: clean_rodinia_2.0-ft 
-#	../data_dirs/clean_data.sh
-
-#clean_dragon-naive clean_dragon-cdp clean_pannotia clean_proxy-apps
+# clean_dragon-naive clean_pannotia clean_proxy-apps
+clean: clean_rodinia_2.0-ft clean_dragon-cdp  clean_ispass-2009 clean_lonestargpu-2.0
+	../data_dirs/clean_data.sh
 
 data:
 	mkdir -p $(BINDIR)/$(BINSUBDIR)/
@@ -19,7 +22,7 @@ data:
 ###################################################################################################3
 # Rodinia 2.0 Functional Test Stuff
 ###################################################################################################3
-rodinia_2.0-ft: data
+rodinia_2.0-ft:
 	$(SETENV) make $(MAKE_ARGS) -C cuda/rodinia/2.0-ft/backprop
 	$(SETENV) make $(MAKE_ARGS) -C cuda/rodinia/2.0-ft/bfs
 	$(SETENV) make $(MAKE_ARGS) -C cuda/rodinia/2.0-ft/heartwall
@@ -43,7 +46,7 @@ microbench:
 # Naive works wwith only SM_20 and above
 # Fro Dragon-cdp comilation, you need to ensure that you are using at least CUDA 5.5
 ###################################################################################################3
-dragon-naive: data
+dragon-naive: 
 	chmod +x cuda/dragon_li/sconstruct
 	if [ ${CUDA_VERSION_MAJOR} -lt 8 ]; then \
 		scons sm20=1 -C cuda/dragon_li; \
@@ -51,7 +54,7 @@ dragon-naive: data
 		scons sm62=1 -C cuda/dragon_li; \
 	fi
 
-dragon-cdp: data
+dragon-cdp:
 	chmod +x cuda/dragon_li/sconstruct
 	scons cdp=1 -C cuda/dragon_li
 	cp ./cuda/dragon_li/cdp_bin/$(CUDA_VERSION)/testAmr-cdp $(BINDIR)/$(BINSUBDIR)/
@@ -63,7 +66,7 @@ dragon-cdp: data
 #pagerank and bc does not work with SM_10 because they need atomic_add
 ###################################################################################################3
 
-pannotia: data
+pannotia:
 	$(SETENV) make $(MAKE_ARGS) -C cuda/pannotia/bc
 	$(SETENV) export VARIANT="MAX"; make $(MAKE_ARGS) -C cuda/pannotia/color
 	$(SETENV) export VARIANT="MAXMIN"; make $(MAKE_ARGS) -C cuda/pannotia/color
@@ -83,7 +86,7 @@ pannotia: data
 ###################################################################################################3
 
 
-proxy-apps: data
+proxy-apps:
 	chmod +x cuda/proxy-apps-doe/cns/compile.bash
 	($(SETENV) cd cuda/proxy-apps-doe/cns/ ; ./compile.bash)
 	#chmod +x cuda/proxy-apps-doe/comd/cmd_compile.sh
@@ -161,7 +164,7 @@ rodinia-3.1:
 	mv $(BINDIR)/$(BINSUBDIR)/streamcluster $(BINDIR)/$(BINSUBDIR)/streamcluster-rodinia-3.1
 	mv $(BINDIR)/mummergpu $(BINDIR)/$(BINSUBDIR)/mummergpu-rodinia-3.1
 
-ispass-2009: data
+ispass-2009:
 #	$(SETENV) make $(MAKE_ARGS) noinline=$(noinline) -C cuda/ispass-2009/AES
 	$(SETENV) make $(MAKE_ARGS) noinline=$(noinline) -C cuda/ispass-2009/BFS
 #	cd CP; export PARBOIL_ROOT=`pwd`; cd common/src; make $(MAKE_ARGS); cd -; ./parboil compile cp cuda_short; cp benchmarks/cp/build/cuda_short/cp $(BINDIR)/$(BINSUBDIR)/CP 
@@ -175,6 +178,23 @@ ispass-2009: data
 	$(SETENV) make $(MAKE_ARGS) noinline=$(noinline) -C cuda/ispass-2009/RAY
 	$(SETENV) make $(MAKE_ARGS) noinline=$(noinline) -C cuda/ispass-2009/STO
 	PID=$$$$ && cp -r cuda/ispass-2009/WP cuda/ispass-2009/WP-$$PID && $(SETENV) make $(MAKE_ARGS) noinline=$(noinline) -C cuda/ispass-2009/WP-$$PID && rm -rf cuda/ispass-2009/WP-$$PID
+
+lonestargpu-2.0:
+	$(setenv) make $(make_args) noinline=$(noinline) -C cuda/lonestargpu-2.0 all
+	mv cuda/lonestargpu-2.0/apps/bfs/bfs $(BINDIR)/$(BINSUBDIR)/lonestar-bfs
+	mv cuda/lonestargpu-2.0/apps/bfs/bfs-atomic $(BINDIR)/$(BINSUBDIR)/lonestar-bfs-atomic
+	mv cuda/lonestargpu-2.0/apps/bfs/bfs-wlc $(BINDIR)/$(BINSUBDIR)/lonestar-bfs-wlc
+	mv cuda/lonestargpu-2.0/apps/bh/bh $(BINDIR)/$(BINSUBDIR)/lonestar-bh
+	mv cuda/lonestargpu-2.0/apps/dmr/dmr $(BINDIR)/$(BINSUBDIR)/lonestar-dmr
+	mv cuda/lonestargpu-2.0/apps/mst/mst $(BINDIR)/$(BINSUBDIR)/lonestar-mst
+	mv cuda/lonestargpu-2.0/apps/pta/pta $(BINDIR)/$(BINSUBDIR)/lonestar-pta
+	mv cuda/lonestargpu-2.0/apps/sp/nsp $(BINDIR)/$(BINSUBDIR)/lonestar-nsp
+	mv cuda/lonestargpu-2.0/apps/sssp/sssp $(BINDIR)/$(BINSUBDIR)/lonestar-sssp
+	mv cuda/lonestargpu-2.0/apps/sssp/sssp-wlc $(BINDIR)/$(BINSUBDIR)/lonestar-sssp-wlc
+	mv cuda/lonestargpu-2.0/apps/sssp/sssp-wln $(BINDIR)/$(BINSUBDIR)/lonestar-sssp-wln
+
+clean_lonestargpu-2.0:
+	$(setenv) make $(make_args) noinline=$(noinline) -C cuda/lonestargpu-2.0 clean
 
 clean_ispass-2009:
 	$(SETENV) make $(MAKE_ARGS) clean noinline=$(noinline) -C cuda/ispass-2009/AES
@@ -256,5 +276,3 @@ clean_proxy-apps:
 	(cd cuda/proxy-apps-doe/cns/ ; ./compile.bash -c)
 	chmod +x cuda/proxy-apps-doe/comd/clean.sh
 	( cd cuda/proxy-apps-doe/comd ; ./clean.sh ) 
-
-
