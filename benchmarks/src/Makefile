@@ -7,7 +7,7 @@ endif
 ifeq ($(CUDA_GT_4), 1)
 all:   pannotia rodinia_2.0-ft proxy-apps dragon-naive microbench rodinia-3.1 sdk-4.2 ispass-2009 dragon-cdp lonestargpu-2.0
 else
-all:   pannotia rodinia_2.0-ft proxy-apps dragon-naive microbench rodinia-3.1 sdk-4.2 ispass-2009
+all:   pannotia rodinia_2.0-ft proxy-apps microbench rodinia-3.1 sdk-4.2 ispass-2009
 endif
 
 #Disable clean for now, It has a bug!
@@ -51,14 +51,22 @@ microbench:
 dragon-naive: 
 	chmod +x cuda/dragon_li/sconstruct
 	if [ ${CUDA_VERSION_MAJOR} -lt 8 ]; then \
-		scons sm20=1 -C cuda/dragon_li; \
+		scons sm35=1 no_debug=1 -C cuda/dragon_li; \
 	else \
-		scons sm62=1 -C cuda/dragon_li; \
+		scons sm35=1 sm61=1 no_debug=1 -C cuda/dragon_li; \
 	fi
+	cp ./cuda/dragon_li/bin/$(CUDA_VERSION)/testAmr $(BINDIR)/$(BINSUBDIR)/
+	cp ./cuda/dragon_li/bin/$(CUDA_VERSION)/testBfs $(BINDIR)/$(BINSUBDIR)/
+	cp ./cuda/dragon_li/bin/$(CUDA_VERSION)/testJoin $(BINDIR)/$(BINSUBDIR)/
+	cp ./cuda/dragon_li/bin/$(CUDA_VERSION)/testSssp $(BINDIR)/$(BINSUBDIR)/
 
-dragon-cdp:
+dragon-cdp: dragon-naive
 	chmod +x cuda/dragon_li/sconstruct
-	scons cdp=1 -C cuda/dragon_li
+	if [ ${CUDA_VERSION_MAJOR} -lt 8 ]; then \
+		scons cdp=1 no_debug=1 sm35=1 -C cuda/dragon_li; \
+	else \
+		scons cdp=1 no_debug=1 sm61=1 sm35=1 -C cuda/dragon_li; \
+	fi
 	cp ./cuda/dragon_li/cdp_bin/$(CUDA_VERSION)/testAmr-cdp $(BINDIR)/$(BINSUBDIR)/
 	cp ./cuda/dragon_li/cdp_bin/$(CUDA_VERSION)/testBfs-cdp $(BINDIR)/$(BINSUBDIR)/
 	cp ./cuda/dragon_li/cdp_bin/$(CUDA_VERSION)/testJoin-cdp $(BINDIR)/$(BINSUBDIR)/
@@ -92,7 +100,7 @@ proxy-apps:
 	chmod +x cuda/proxy-apps-doe/cns/compile.bash
 	($(SETENV) cd cuda/proxy-apps-doe/cns/ ; ./compile.bash)
 	#chmod +x cuda/proxy-apps-doe/comd/cmd_compile.sh
-	#( cd cuda/proxy-apps-doe/comd ; ./cmd_compile.sh) 
+	#( cd cuda/proxy-apps-doe/comd ; ./cmd_compile.sh)
 	$(SETENV) make $(MAKE_ARGS) -C cuda/proxy-apps-doe/lulesh
 	if [ ${CUDA_VERSION_MAJOR} -lt 7 ] ; then  \
 		$(SETENV) make $(MAKE_ARGS) -C cuda/proxy-apps-doe/minife_matvec_ell;\
@@ -186,6 +194,8 @@ lonestargpu-2.0:
 	mv cuda/lonestargpu-2.0/apps/bfs/bfs $(BINDIR)/$(BINSUBDIR)/lonestar-bfs
 	mv cuda/lonestargpu-2.0/apps/bfs/bfs-atomic $(BINDIR)/$(BINSUBDIR)/lonestar-bfs-atomic
 	mv cuda/lonestargpu-2.0/apps/bfs/bfs-wlc $(BINDIR)/$(BINSUBDIR)/lonestar-bfs-wlc
+	mv cuda/lonestargpu-2.0/apps/bfs/bfs-wla $(BINDIR)/$(BINSUBDIR)/lonestar-bfs-wla
+	mv cuda/lonestargpu-2.0/apps/bfs/bfs-wlw $(BINDIR)/$(BINSUBDIR)/lonestar-bfs-wlw
 	mv cuda/lonestargpu-2.0/apps/bh/bh $(BINDIR)/$(BINSUBDIR)/lonestar-bh
 	mv cuda/lonestargpu-2.0/apps/dmr/dmr $(BINDIR)/$(BINSUBDIR)/lonestar-dmr
 	mv cuda/lonestargpu-2.0/apps/mst/mst $(BINDIR)/$(BINSUBDIR)/lonestar-mst
