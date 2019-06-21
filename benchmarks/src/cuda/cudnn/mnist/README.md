@@ -5,7 +5,7 @@ Jonathan Lew, Deval Shah, Suchita Pati, Shaylin Cattell, Mengchi Zhang, Amruth S
 
 ### Install cuDNN Developer library ###
 
-* This benchmark is tested for cuda-8.0 and cuDNN v7.1.4
+* This benchmark is tested for cuda-8.0 and cuDNN v7.1.4. This banchmark is taken from the code samples provided on [NVIDIA Developer site](https://developer.nvidia.com/rdp/cudnn-archive) and modified for GPGPU-Sim.
 * Download cuDNN Developer Library from [https://developer.nvidia.com/rdp/cudnn-archive](https://developer.nvidia.com/rdp/cudnn-archive).
 * Follow the instructions given on  [https://docs.nvidia.com/deeplearning/sdk/cudnn-install/index.html](https://docs.nvidia.com/deeplearning/sdk/cudnn-install/index.html) to install cuDNN library. (If you don't have sudo permissions, you can extract the debian file and then follow the instructions for "Installing from a Tar File")
 
