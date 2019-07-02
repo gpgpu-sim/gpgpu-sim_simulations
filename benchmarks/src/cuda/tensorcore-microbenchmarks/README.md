@@ -8,17 +8,18 @@ Madison, Wisconsin, March 24-26, 2019.
 
 ## Code
 
-<img src="./readme_files/CODE.PNG" ALIGN="left" width="400" height="45" />
+![Example Code](./readme_files/CODE.PNG)
 
 Since each wmma::mma API will be broken into 16 HMMA instructions for Volta Tensor Core and we want to profile cumulative clock cycle for the nth HMMA instructions. So, our objective is basically to move the clock instruction after the nth HMMA and make the rest of HMMA instruction to NOP instruction.
 
 **Compile the code**
 
-<img src="./readme_files/Make.PNG" ALIGN="left" width="800" height="55" />
+![Example Code](./readme_files/Make.PNG)
 
 **Dump the SASS code**
 
 Command: **cuobjdump -sass profiling_mixed_row_major_layout > sass**
+
 Open the dumped sass and search for HMMA, CLOCK and NOP instruction:
 
 **HMMA**
@@ -41,13 +42,13 @@ Open the dumped sass and search for HMMA, CLOCK and NOP instruction:
 	vi profiling_mixed_row_major_layout
 	:%! xxd (enter the following command in command mode)
 
-**Search HMMA instruction by searching 3672 ( due to endianness) **
+**Search HMMA instruction by searching 3672 ( due to endianness)**
 ![Example Code](./readme_files/HMMA_HEX.PNG)
 
-**Search CLOCK instruction by searching 0578 ( due to endianness) **
+**Search CLOCK instruction by searching 0578 ( due to endianness)**
 ![Example Code](./readme_files/CLOCK_HEX.PNG)
 
-**Search NOP instruction by searching 1879 ( due to endianness) **
+**Search NOP instruction by searching 1879 ( due to endianness)**
 ![Example Code](./readme_files/NOP_HEX.PNG)
 
 **Left column represents the address where the instruction is present in the binary.**
