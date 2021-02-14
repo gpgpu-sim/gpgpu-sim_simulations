@@ -282,7 +282,7 @@ for idx, app_and_args in enumerate(apps_and_args):
                         if current_kernel + app_and_args + config + stat_name in stat_map:
                             del stat_map[current_kernel + app_and_args + config + stat_name]
 
-                kernel_match = re.match("kernel_name\s+=\s+(.*)", line);
+                kernel_match = re.search("kernel_name\s+=\s+(.*)", line);
                 if kernel_match:
                     last_kernel = current_kernel
                     current_kernel = kernel_match.group(1).strip()
